@@ -24,7 +24,7 @@
 
         collapseColors: GM_getValue('collapseColors', true),
         hideDemos: GM_getValue('hideDemos', true),
-        alwaysHideDemos: GM_getValue('alwaysHideDemos', true),
+        alwaysHideDemos: GM_getValue('alwaysHideDemos', false),
         alwaysHideLimited: GM_getValue('alwaysHideLimited', true),
 
         showCurrency: GM_getValue('showCurrency', true),
@@ -36,8 +36,8 @@
     const COLOR_WORDS = [
         'black','white','red','blue','green','pink','purple',
         'yellow','orange','brown','tan','gray','grey',
-        'silver','gold','beige','cream','olive','mint',
-        'burgundy','navy','teal'
+        'silver','gold','beige','cream','olive','mint','violet',
+        'burgundy','navy','teal','lavender','magenta','sky','lime'
     ];
 
     function applyMarketplaceFilters() {
