@@ -5,8 +5,7 @@ A Tampermonkey userscript that filters Second Life Marketplace search results cl
 ## Installation
 
 1. Install the [Tampermonkey](https://www.tampermonkey.net/) browser extension
-2. Create a new script and paste the full script contents
-3. Save — it activates automatically on `marketplace.secondlife.com`
+2. [Install the userscript by clicking here](https://raw.githubusercontent.com/Atasly/SL-MP-Cleaner/main/SL MP Cleaner.user.js)
 
 ---
 
