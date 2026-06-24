@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SL Marketplace Cleaner
 // @namespace    slmarketplace
-// @version      0.4
+// @version      0.41
 // @description  Clean up Second Life Marketplace search results
 // @match        https://marketplace.secondlife.com/*
 // @grant        GM_getValue
@@ -23,7 +23,7 @@
         maxPerStore: GM_getValue('maxPerStore', -1),
 
         collapseColors: GM_getValue('collapseColors', true),
-        hideDemos: GM_getValue('hideDemos', true),
+        hideUnlabelledDemos: GM_getValue('hideUnlabelledDemos', true),
         alwaysHideDemos: GM_getValue('alwaysHideDemos', false),
         alwaysHideLimited: GM_getValue('alwaysHideLimited', true),
 
@@ -189,6 +189,17 @@
         filterTimer = setTimeout(_doFilter, 50);
     }
 
+    function isDemoFilterActive() {
+        // Server-side filter already active via URL param
+        const params = new URLSearchParams(location.search);
+        if (params.get('search[no_demos]') === '1') return true;
+
+        // Or user enabled alwaysHideDemos (which checks the checkbox)
+        if (SETTINGS.alwaysHideDemos) return true;
+
+        return false;
+    }
+
     function _doFilter() {
         const cards = getCards();
         const storeCounts = new Map();
@@ -208,7 +219,7 @@
             }
 
             // 2. Demo filter
-            if (SETTINGS.hideDemos && isDemo(item.title)) {
+            if (SETTINGS.hideUnlabelledDemos && isDemoFilterActive() && isDemo(item.title)) {
                 item.card.style.display = 'none';
                 continue;
             }
