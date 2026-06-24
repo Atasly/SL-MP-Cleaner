@@ -23,11 +23,11 @@ Matching is case-insensitive. Any item whose store name exactly matches an entry
 ---
 
 ### 2. Demo Filter
-Hides items whose title contains demo-related words:
+Hides items whose title contains demo-related words, when the no demo option is picked:
 `demo`, `trial`, `preview`, `sample`, `tester`, `test version`
 
 ```js
-hideDemos: true   // set to false to keep demos visible
+hideUnlabelledDemos: true   // set to false to keep demos visible
 ```
 
 ---
@@ -104,11 +104,11 @@ All settings live in the `SETTINGS` object at the top of the script. Edit them d
 
 ```js
 const SETTINGS = {
-    blacklist:        ['Bad Store'],
-    negativeKeywords: ['gacha', 'fatpack'],
-    maxPerStore:      3,
-    collapseColors:   true,
-    hideDemos:        true
+    blacklist:          ['Bad Store'],
+    negativeKeywords:   ['gacha', 'fatpack'],
+    maxPerStore:        3,
+    collapseColors:     true,
+    hideUnabelledDemos: true
 };
 ```
 
