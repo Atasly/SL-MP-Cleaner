@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SL Marketplace Cleaner
 // @namespace    slmarketplace
-// @version      0.41
+// @version      0.42
 // @description  Clean up Second Life Marketplace search results
 // @match        https://marketplace.secondlife.com/*
 // @grant        GM_getValue
@@ -85,28 +85,17 @@
         document.querySelectorAll('.title4')
             .forEach(el => {
 
-            if (
-                el.querySelector('.slmc-converted')
-            ) {
+            if (el.querySelector('.slmc-converted')) {
                 return;
             }
 
-            const match =
-                  el.textContent.match(/L\$\s*([\d,]+)/);
-
+            const match = el.textContent.match(/L\$\s*([\d.,\s]+)/);
             if (!match) return;
+            const value = parseInt(match[1].replace(/[\s.,]/g, ''), 10);
 
-            const value =
-                  parseInt(
-                      match[1].replace(/,/g, ''),
-                      10
-                  );
+            const span = document.createElement('span');
 
-            const span =
-                  document.createElement('span');
-
-            span.className =
-                'slmc-converted';
+            span.className = 'slmc-converted';
 
             span.textContent =
                 ' (' +
