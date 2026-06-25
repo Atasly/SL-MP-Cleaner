@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SL Marketplace Cleaner
 // @namespace    slmarketplace
-// @version      0.42
+// @version      0.43
 // @description  Clean up Second Life Marketplace search results
 // @match        https://marketplace.secondlife.com/*
 // @grant        GM_getValue
@@ -121,7 +121,7 @@
         }
         else {
             document.title =
-                'SL Marketplace';
+                'SL MP - ' + document.title.slice(26);
         }
     }
 
