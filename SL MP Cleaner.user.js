@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SL Marketplace Cleaner
 // @namespace    slmarketplace
-// @version      0.43
+// @version      0.44
 // @description  Clean up Second Life Marketplace search results
 // @match        https://marketplace.secondlife.com/*
 // @grant        GM_getValue
@@ -221,7 +221,8 @@
 
             // 4. Color variant collapse
             if (SETTINGS.collapseColors) {
-                const key = brandLower + '|' + normalizeTitle(item.title);
+                const demoFlag = isDemo(item.title) ? '|demo' : '|full';
+                const key = brandLower + '|' + normalizeTitle(item.title) + demoFlag;
                 if (seenVariants.has(key)) {
                     item.card.style.display = 'none';
                     continue;
