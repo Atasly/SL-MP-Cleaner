@@ -23,7 +23,7 @@ All changes apply immediately and are remembered across page loads (`GM_getValue
 | Filter to preferred body | on | Hides items made for a body other than your preferred one |
 | Preferred body | Reborn | Reborn/eBody, Maitreya/Lara, Legacy, Kupra/Khupra, Jake, Gianni |
 | Show converted prices | on | Appends a €/USD price to each listing |
-| Max per store | Off | Caps how many listings per store are shown (1/2/3/5/10) |
+| Max per store | off | Caps how many listings per store are shown (1/2/3/5/10) |
 | Debug log | off | Logs every hide decision and a summary to the browser console |
 
 ---
@@ -78,7 +78,7 @@ With "Max per store" set to N, only the first N listings of each store (in page 
 
 ### Currency conversion
 
-Each `L$` price gets a small appended span with the price converted to € or USD:
+Each `L$` price gets a small appended span with the price converted to € or USD. This works both on search result cards (`.title4`) and on individual item pages (`.price-ld`); the number formats `L$ 1,399`, `L$ 1399` and `L$ 1 399` are all handled:
 
 - `usdPerLinden` — L$ → USD rate (default `1/250`)
 - `eurPerUsd` — USD → EUR rate (default `0.87`)
