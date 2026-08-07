@@ -17,6 +17,8 @@ All changes apply immediately and are remembered across page loads (`GM_getValue
 
 | Option | Default | Effect |
 | ------ | ------- | ------ |
+| Blacklist stores | empty | Hides every listing from these stores |
+| Negative keywords | empty | Hides listings whose title contains these substrings |
 | Hide demos (title) | on | Hides items whose name contains the word **demo** |
 | Hide limited quantity | on | Checks the marketplace's native "limited quantity" filter |
 | Collapse color variants | on | Keeps the first listing of each product/color set |
@@ -25,6 +27,13 @@ All changes apply immediately and are remembered across page loads (`GM_getValue
 | Show converted prices | on | Appends a €/USD price to each listing |
 | Max per store | off | Caps how many listings per store are shown (1/2/3/5/10) |
 | Debug log | off | Logs every hide decision and a summary to the browser console |
+
+### List editors
+
+**Blacklist stores** and **Negative keywords** each have a checkbox toggle (like every other option) plus a small inline editor. Ticking the checkbox on/off enables or disables the filter immediately; press **Edit** to open the editor, type one entry per line (commas are also treated as separators), then **Save**. A badge next to each label shows how many entries the list holds.
+
+- Blacklist entries are matched **exactly** against the store name, case-insensitively (e.g. `Wraith` hides only that store, not `Wraith's Shop`).
+- Negative keywords are matched as **substrings** of the product title, case-insensitively (e.g. `gacha` hides every title containing "gacha").
 
 ---
 
@@ -102,7 +111,7 @@ For each item the filters run in this order, and the first match hides it:
 
 ## Code-level settings
 
-The defaults live in `DEFAULT_SETTINGS` at the top of the script. Most are exposed in the menu; the following two are only changeable in code (persisted via `GM_setValue`):
+The defaults live in `DEFAULT_SETTINGS` at the top of the script. Every option is exposed in the menu (the list editors write the same `blacklist`/`negativeKeywords` arrays the code uses); the values below are what the code reads, so editing them in the source also works and is remembered via `GM_setValue`:
 
 ```js
 blacklist:        [],            // store names to hide entirely (exact, case-insensitive)
