@@ -1,6 +1,6 @@
 # SL Marketplace Cleaner
 
-A Tampermonkey userscript that filters Second Life Marketplace search results client-side, with no external requests.
+A Tampermonkey userscript that filters Second Life Marketplace search results entirely in the browser with no external requests.
 
 ## Installation
 
@@ -9,115 +9,115 @@ A Tampermonkey userscript that filters Second Life Marketplace search results cl
 
 ---
 
-## Features
+## The SL Cleaner menu
 
-### 1. Merchant Blacklist
-Hides all results from specific stores.
+Every search page gets an **SL Cleaner** button in the sort bar (to the left of "Best Selling"). A badge on the button shows how many items on the current page were hidden. Clicking it opens a menu with every option below.
 
-```js
-blacklist: ['Spam Store', 'Another Store']
-```
+All changes apply immediately and are remembered across page loads (`GM_getValue`/`GM_setValue`). Options that live in the menu:
 
-Matching is case-insensitive. Any item whose store name exactly matches an entry is hidden.
-
----
-
-### 2. Demo Filter
-Hides items whose title contains demo-related words, when the no demo option is picked:
-`demo`, `trial`, `preview`, `sample`, `tester`, `test version`
-
-```js
-hideUnlabelledDemos: true   // set to false to keep demos visible
-```
+| Option | Default | Effect |
+| ------ | ------- | ------ |
+| Hide demos (title) | on | Hides items whose name contains the word **demo** |
+| Hide limited quantity | on | Checks the marketplace's native "limited quantity" filter |
+| Collapse color variants | on | Keeps the first listing of each product/color set |
+| Filter to preferred body | on | Hides items made for a body other than your preferred one |
+| Preferred body | Reborn | Reborn/eBody, Maitreya/Lara, Legacy, Kupra/Khupra, Jake, Gianni |
+| Show converted prices | on | Appends a €/USD price to each listing |
+| Max per store | Off | Caps how many listings per store are shown (1/2/3/5/10) |
+| Debug log | off | Logs every hide decision and a summary to the browser console |
 
 ---
 
-### 3. Negative Keywords
-Hides any item whose title contains one of the specified strings.
+## How each filter works
 
-```js
-negativeKeywords: ['gacha', 'fatpack']
-```
+### Demo detection
 
-Matching is case-insensitive and substring-based (e.g. `'gacha'` matches `"Spring Gacha Set"`).
+Items are checked against the **full product name**, read from the `product_dl_data_*` script embedded in each result card — the marketplace truncates the visible card title, so reading the embedded name avoids both missed demos and false positives.
 
----
+A name counts as a demo if it contains the word `demo` (also `demos`), as a whole word and case-insensitively:
 
-### 4. Color Variant Collapse
-When the same item is listed separately per color, only the first result is kept and the rest are hidden.
+- Matches: `... BOM-DEMO`, `SaCaYa ... Demo`, `... Fatpack DEMO`
+- Does **not** match: `Demolition Hammer`, `Demons and Devils`, `Sample Textures Pack`, `Preview Dress`, `Trial Version Leggings`, `Super Tester Gadget`
 
-```js
-collapseColors: true   // set to false to see all color variants
-```
+Only the word "demo" is considered — trial/preview/sample/tester keywords are intentionally **not** used. This is purely our own title matching; the marketplace's native `no_demos` checkbox is deliberately never touched.
 
-Color words stripped during comparison include: black, white, red, blue, green, pink, purple, yellow, orange, brown, tan, gray/grey, silver, gold, beige, cream, olive, mint, burgundy, navy, teal.
+### Body filter (preferred body)
 
-Text in `(parentheses)`, `{braces}`, and `[brackets]` is also stripped before comparing, since stores often put the color there.
+Bodies are detected from the product name, with aliases merged so interchangeable names count as one body:
 
-Two items are considered variants of each other if they share the same store and the same title after color/bracket stripping.
+| Option | Also matches |
+| ------ | ------------ |
+| Reborn/eBody | `reborn`, `ebody`, `e-body`, `e body` |
+| Maitreya/Lara | `maitreya`, `lara` |
+| Legacy | `legacy` |
+| Kupra/Khupra | `kupra`, `khupra` |
+| Jake | `jake` |
+| Gianni | `gianni` |
 
----
+When "Filter to preferred body" is on, every item whose detected body is not the preferred one is hidden. All items for the preferred body stay visible — sub-variants such as `Reborn Waifu`, `Reborn Teacups`, `Reborn V-Tech`, and fatpacks are **not** merged; they are each kept as their own listing. Items with **no** detectable body (add-on HUDs, megapacks, male-only fatpacks, etc.) are always kept.
 
-### 5. Store Saturation Limit
-Caps how many results from a single store are shown per page. 
-`-1` to disable
+### Color variant collapse
 
-```js
-maxPerStore: 3   // show at most 3 results per store
-```
+Two listings are treated as color variants of the same product when they share the same store, the same product stem, and the same demo status. The stem is the lowercase title after stripping:
 
-Results are processed top-to-bottom; the first N items from each store are kept and the rest hidden.
+- color words (black, white, red, blue, green, pink, purple, yellow, orange, brown, tan, gray/grey, silver, gold, beige, cream, olive, mint, violet, burgundy, navy, teal, lavender, magenta, sky, lime)
+- text inside `(parentheses)` (stores often put the color there)
+- all punctuation (collapsed to spaces)
 
----
+Text in `{braces}` and `[brackets]` is **kept** — those usually carry product markers like `{PRIDE MEGAPACK}` rather than colors.
 
-### 6. Automatically hide Demos and Limited items
-Automatically hides Limited Quantities items, and Demo ones
+Of each such group only the first listing (in page order) is shown. Body-specific items and generic items are grouped separately, and demo versions are grouped separately from full versions, so a demo never collapses a full product.
 
-```js
-alwaysHideDemos: true     // Always hide demos items
-alwaysHideLimited: true   // Always hide limited items, i.e. gacha
-```
+### Store saturation limit
 
----
+With "Max per store" set to N, only the first N listings of each store (in page order) are shown; the rest are hidden. `Off` disables this.
 
-### 7. Rename tab titles
-Rename tab titles to `SL MP - [search/item name]`
+### Limited quantity
 
----
+"Hide limited quantity" simply checks the marketplace's own `no_quantity` filter checkbox, so the marketplace does the hiding.
 
-### 8. Convert SL prices to RL currencies
-Converts SL prices to RL currencies, currently € and USD supported.
-More conversions could be added, but due to the hard-coded nature of it, it is left to the user.
+### Currency conversion
 
-```js
-showCurrency: true     // Show currency
-currency: EUR		   // Choose between Euro (EUR) and US Dollars (USD) as a currency
-usdPerLinden: 0.004    // i.e. 1 for 250
-eurPerUsd: 0.87		   // The conversion from USD to EUR
-```
+Each `L$` price gets a small appended span with the price converted to € or USD:
+
+- `usdPerLinden` — L$ → USD rate (default `1/250`)
+- `eurPerUsd` — USD → EUR rate (default `0.87`)
+
+### Tab titles
+
+Result pages are renamed to `SL MP - <search query>` so tabs are easy to tell apart.
 
 ---
 
-## Changing Settings
+## Rule order
 
-All settings live in the `SETTINGS` object at the top of the script. Edit them directly in the Tampermonkey editor and save — changes take effect on the next page load.
+For each item the filters run in this order, and the first match hides it:
+
+1. Merchant blacklist
+2. Demo
+3. Negative keyword
+4. Body filter (other than preferred body)
+5. Color variant
+6. Store saturation limit
+
+## Code-level settings
+
+The defaults live in `DEFAULT_SETTINGS` at the top of the script. Most are exposed in the menu; the following two are only changeable in code (persisted via `GM_setValue`):
 
 ```js
-const SETTINGS = {
-    blacklist:          ['Bad Store'],
-    negativeKeywords:   ['gacha', 'fatpack'],
-    maxPerStore:        3,
-    collapseColors:     true,
-    hideUnabelledDemos: true
-};
+blacklist:        [],            // store names to hide entirely (exact, case-insensitive)
+negativeKeywords: [],            // title substrings to hide, e.g. ['gacha']
 ```
 
-Settings are also persisted via `GM_getValue`/`GM_setValue`, meaning future versions of the script can offer a UI to edit them without touching the code.
+```js
+collapseBodies:  true,           // 'Filter to preferred body'
+preferredBody:   'Reborn',       // one of: Reborn, Maitreya, Legacy, Kupra, Jake, Gianni
+```
 
 ---
 
 ## Notes
 
 - Filtering is purely visual — items are hidden with `display: none`, not removed from the DOM
-- Works with SL Marketplace's AJAX pagination; results are re-filtered automatically as new pages load
-- Filtering re-runs whenever new content is added to the page (via MutationObserver), debounced at 50ms to avoid performance issues
+- Results are re-filtered automatically as the marketplace loads new pages (via `MutationObserver`, debounced 50 ms)
+- Hidden-count badge updates on every re-filter
