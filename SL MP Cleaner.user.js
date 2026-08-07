@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SL Marketplace Cleaner
 // @namespace    slmarketplace
-// @version      0.57
+// @version      0.59
 // @description  Clean up Second Life Marketplace search results
 // @match        https://marketplace.secondlife.com/*
 // @grant        GM_getValue
@@ -13,7 +13,9 @@
 
     const DEFAULT_SETTINGS = {
         blacklist: [],
+        blacklistEnabled: true,
         negativeKeywords: [],
+        negativeKeywordsEnabled: true,
         maxPerStore: -1,
         collapseColors: true,
         collapseBodies: true,
@@ -55,6 +57,10 @@
         saveSetting(key, coerceSetting(key, value));
         refreshAll();
         syncUIFromSettings();
+    }
+
+    function parseListInput(text) {
+        return [...new Set(String(text || '').split(/[\n,]/).map(s => s.trim()).filter(Boolean))];
     }
 
     const COLOR_WORDS = [
@@ -152,8 +158,8 @@
         };
         const name = grab('name');
         const brand = grab('brand');
-        if (name !== null) data.name = decodeEntities(name);
-        if (brand !== null) data.brand = decodeEntities(brand);
+        if (name !== null) data.name = decodeEntities(name).trim();
+        if (brand !== null) data.brand = decodeEntities(brand).trim();
         return data;
     }
 
@@ -182,13 +188,13 @@
         const name = item.name.toLowerCase();
         const brand = item.brand.toLowerCase();
 
-        if (item.brand && settings.blacklist.some(b => brand === b.toLowerCase())) {
+        if (settings.blacklistEnabled && item.brand && settings.blacklist.some(b => brand === b.toLowerCase())) {
             return 'blacklist';
         }
         if (settings.hideDemos && isDemo(item.name)) {
             return 'demo';
         }
-        if (settings.negativeKeywords.some(kw => kw && name.includes(kw.toLowerCase()))) {
+        if (settings.negativeKeywordsEnabled && settings.negativeKeywords.some(kw => kw && name.includes(kw.toLowerCase()))) {
             return 'negative keyword';
         }
         if (shouldHideBody(item.body)) {
@@ -336,6 +342,8 @@
             ['Kupra', 'Kupra/Khupra'], ['Jake', 'Jake'], ['Gianni', 'Gianni']
         ] },
         { key: 'showCurrency', type: 'bool', label: 'Show converted prices' },
+		{ key: 'blacklist', type: 'list', label: 'Blacklist stores', placeholder: 'exact store names, one per line' },
+        { key: 'negativeKeywords', type: 'list', label: 'Negative keywords', placeholder: 'title substrings, e.g. gacha' },
         { key: 'maxPerStore', type: 'select', label: 'Max per store', options: [['-1', 'Off'], ['1', '1'], ['2', '2'], ['3', '3'], ['5', '5'], ['10', '10']] },
         { key: 'debug', type: 'bool', label: 'Debug log' },
     ];
@@ -386,6 +394,49 @@
             color: #333;
         }
         #slmc-ui .slmc-row-select select { max-width: 90px; }
+        #slmc-ui .slmc-row-list { padding: 8px 16px; }
+        #slmc-ui .slmc-row-list-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #333;
+            white-space: nowrap;
+        }
+        #slmc-ui .slmc-row-list .slmc-row-list-enable {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            margin: 0;
+            padding: 0;
+        }
+        #slmc-ui .slmc-row-list-enable input[type="checkbox"] { margin: 0; }
+        #slmc-ui .slmc-row-list-head .slmc-badge { margin-left: auto; }
+        #slmc-ui .slmc-row-list.slmc-list-disabled { opacity: 0.5; }
+        #slmc-ui .slmc-list-toggle, #slmc-ui .slmc-list-btn {
+            background: #f0f2f4;
+            border: 1px solid #d9dde3;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #333;
+        }
+        #slmc-ui .slmc-list-toggle:hover, #slmc-ui .slmc-list-btn:hover { background: #e2e6ea; }
+        #slmc-ui .slmc-list-editor { margin-top: 6px; }
+        #slmc-ui .slmc-list-editor textarea {
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 12px;
+            padding: 4px 6px;
+            border: 1px solid #d9dde3;
+            border-radius: 4px;
+            resize: vertical;
+            color: #333;
+            background: #fff;
+        }
+        #slmc-ui .slmc-list-actions { display: flex; gap: 6px; margin-top: 6px; }
         #slmc-ui .slmc-badge {
             margin-left: 6px; min-width: 18px; padding: 0 5px; border-radius: 9px;
             font-size: 11px; line-height: 18px; text-align: center;
@@ -423,6 +474,57 @@
             }
             li.appendChild(text);
             li.appendChild(select);
+        } else if (row.type === 'list') {
+            li.classList.add('slmc-row-list');
+            const head = document.createElement('div');
+            head.className = 'slmc-row-list-head';
+            const enable = document.createElement('label');
+            enable.className = 'slmc-row-list-enable';
+            const toggleInput = document.createElement('input');
+            toggleInput.type = 'checkbox';
+            toggleInput.dataset.setting = row.key + 'Enabled';
+            const text = document.createElement('span');
+            text.textContent = row.label;
+            enable.appendChild(toggleInput);
+            enable.appendChild(text);
+            const badge = document.createElement('span');
+            badge.className = 'slmc-badge';
+            badge.dataset.listBadge = row.key;
+            badge.textContent = '0';
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'slmc-list-toggle';
+            editBtn.dataset.listToggle = row.key;
+            editBtn.textContent = 'Edit';
+            head.appendChild(enable);
+            head.appendChild(badge);
+            head.appendChild(editBtn);
+            li.appendChild(head);
+
+            const editor = document.createElement('div');
+            editor.className = 'slmc-list-editor';
+            editor.dataset.listEditor = row.key;
+            editor.hidden = true;
+            const ta = document.createElement('textarea');
+            ta.rows = 5;
+            ta.placeholder = row.placeholder;
+            const actions = document.createElement('div');
+            actions.className = 'slmc-list-actions';
+            const saveBtn = document.createElement('button');
+            saveBtn.type = 'button';
+            saveBtn.className = 'slmc-list-btn';
+            saveBtn.dataset.listSave = row.key;
+            saveBtn.textContent = 'Save';
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'slmc-list-btn';
+            cancelBtn.dataset.listCancel = row.key;
+            cancelBtn.textContent = 'Cancel';
+            actions.appendChild(saveBtn);
+            actions.appendChild(cancelBtn);
+            editor.appendChild(ta);
+            editor.appendChild(actions);
+            li.appendChild(editor);
         }
         return li;
     }
@@ -455,6 +557,34 @@
             if (!input) return;
             const value = input.type === 'checkbox' ? input.checked : input.value;
             setSetting(input.dataset.setting, value);
+        });
+
+        menu.addEventListener('click', (e) => {
+            const toggle = e.target.closest('[data-list-toggle]');
+            const save = e.target.closest('[data-list-save]');
+            const cancel = e.target.closest('[data-list-cancel]');
+            if (!toggle && !save && !cancel) return;
+            const li = e.target.closest('.slmc-row-list');
+            const editor = li.querySelector('.slmc-list-editor');
+            const ta = editor.querySelector('textarea');
+            if (toggle) {
+                if (editor.hidden) {
+                    ta.value = (settings[toggle.dataset.listToggle] || []).join('\n');
+                    editor.hidden = false;
+                    toggle.textContent = 'Close';
+                    ta.focus();
+                } else {
+                    editor.hidden = true;
+                    toggle.textContent = 'Edit';
+                }
+            } else if (save) {
+                setSetting(save.dataset.listSave, parseListInput(ta.value));
+                editor.hidden = true;
+                li.querySelector('[data-list-toggle]').textContent = 'Edit';
+            } else if (cancel) {
+                editor.hidden = true;
+                li.querySelector('[data-list-toggle]').textContent = 'Edit';
+            }
         });
 
         document.addEventListener('click', (e) => {
@@ -524,6 +654,16 @@
         updateBadge();
     }
 
+    function syncListBadges() {
+        if (!uiBuilt) return;
+        document.querySelectorAll('#slmc-ui [data-list-badge]').forEach(badge => {
+            const key = badge.dataset.listBadge;
+            const n = (settings[key] || []).length;
+            badge.textContent = String(n);
+            badge.classList.toggle('slmc-badge-active', n > 0);
+        });
+    }
+
     function syncUIFromSettings() {
         if (!uiBuilt) return;
         document.querySelectorAll('#slmc-ui [data-setting]').forEach(el => {
@@ -533,6 +673,11 @@
             } else if (el.type === 'select-one') {
                 el.value = String(settings[key]);
             }
+        });
+        syncListBadges();
+        document.querySelectorAll('#slmc-ui .slmc-row-list').forEach(li => {
+            const cb = li.querySelector('input[type="checkbox"]');
+            li.classList.toggle('slmc-list-disabled', cb ? !cb.checked : false);
         });
         const prefSelect = document.querySelector('#slmc-ui select[data-setting="preferredBody"]');
         if (prefSelect) prefSelect.disabled = !settings.collapseBodies;
@@ -610,6 +755,7 @@
         normalizeTitle,
         slugToName,
         parseProductData,
+        parseListInput,
         getSettings: () => ({ ...settings }),
     };
 
