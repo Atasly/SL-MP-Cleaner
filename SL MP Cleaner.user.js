@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SL Marketplace Cleaner
 // @namespace    slmarketplace
-// @version      0.56
+// @version      0.57
 // @description  Clean up Second Life Marketplace search results
 // @match        https://marketplace.secondlife.com/*
 // @grant        GM_getValue
@@ -272,17 +272,23 @@
         document.querySelectorAll('.slmc-converted').forEach(el => el.remove());
     }
 
+    function addConvertedPrice(el) {
+        if (el.querySelector('.slmc-converted')) return;
+        const match = el.textContent.match(/L\$\s*([\d.,\s]+)/);
+        if (!match) return;
+        const value = parseInt(match[1].replace(/[\s.,]/g, ''), 10);
+        const span = document.createElement('span');
+        span.className = 'slmc-converted';
+        span.textContent = ' (' + convertPrice(value) + ')';
+        el.appendChild(span);
+    }
+
     function addConvertedPrices() {
-        document.querySelectorAll('.title4').forEach(el => {
-            if (el.querySelector('.slmc-converted')) return;
-			const match = el.textContent.match(/L\$\s*([\d.,\s]+)/);
-            if (!match) return;
-			const value = parseInt(match[1].replace(/[\s.,]/g, ''), 10);
-            const span = document.createElement('span');
-            span.className = 'slmc-converted';
-            span.textContent = ' (' + convertPrice(value) + ')';
-            el.appendChild(span);
-        });
+        const els = new Set([
+            ...document.querySelectorAll('.title4'),
+            ...document.querySelectorAll('.price-ld'),
+        ]);
+        els.forEach(addConvertedPrice);
     }
 
     function applyPrices() {
