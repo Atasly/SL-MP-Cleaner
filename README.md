@@ -32,8 +32,9 @@ All changes apply immediately and are remembered across page loads (`GM_getValue
 
 **Blacklist stores** and **Negative keywords** each have a checkbox toggle (like every other option) plus a small inline editor. Ticking the checkbox on/off enables or disables the filter immediately; press **Edit** to open the editor, type one entry per line (commas are also treated as separators), then **Save**. A badge next to each label shows how many entries the list holds.
 
-- Blacklist entries are matched **exactly** against the store name, case-insensitively (e.g. `Wraith` hides only that store, not `Wraith's Shop`).
+- Blacklist entries are matched against the store name **either** as the exact name (case-insensitive) **or** as a normalized equivalent — punctuation/symbols and emoji are ignored, fancy letters (small-caps like `⊰ɴɪᴀꜱᴀᴍ☯ꜱᴛᴏʀᴇ⊱`, IPA like `ˈtɒksɪk`) are folded to plain ASCII, accents are ignored, and whitespace is collapsed. So `:::SOLE:::` is blacklisted by `sole`, `Sashi{MIA}` by `sashi mia`, `❤️ YsoraL❤️` by `ysoral`, and `Couer  Sucré` by `couer sucre`. Dots stay meaningful between single letters (`*B.D.R.*` → `b.d.r`, `M.mie` → `m.mie`) but act as spaces between words (`something.cool` → `something cool`).
 - Negative keywords are matched as **substrings** of the product title, case-insensitively (e.g. `gacha` hides every title containing "gacha").
+- A **⊘ Blacklist this store** button under the "Add To Favorite Stores" link on every store page (e.g. `marketplace.secondlife.com/stores/248523`) adds that store's exact name to the blacklist in one click. Once added it turns into **Remove from Blacklist** — click it again to take the store back off the list. If the store is already blacklisted when you open the page, the button starts in the remove state.
 
 ---
 

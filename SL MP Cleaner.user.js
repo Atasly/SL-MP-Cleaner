@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SL Marketplace Cleaner
 // @namespace    slmarketplace
-// @version      0.6
+// @version      0.62
 // @description  Clean up Second Life Marketplace search results
 // @match        https://marketplace.secondlife.com/*
 // @grant        GM_getValue
@@ -323,6 +323,7 @@
         if (!profile) return;
         const favLink = profile.querySelector('a.profile-detail-link[href^="/favorite_stores"]');
         if (!favLink) return;
+        ensureStyle(STORE_BTN_CSS, 'slmc-store-style');
         if (profile.querySelector('.slmc-store-bl-btn')) return;
         const titleEl = document.querySelector('#merchant-details .merchant-title h5');
         const storeName = titleEl ? titleEl.textContent.trim() : '';
@@ -532,30 +533,35 @@
             background: #e2e6ea; color: #4a5560;
         }
         #slmc-ui .slmc-badge-active { background: #0178BF; color: #fff; }
-        .slmc-store-bl-btn {
+    `;
+
+    const STORE_BTN_CSS = `
+        button.slmc-store-bl-btn {
             display: block;
             width: 100%;
             margin: 8px 0 0;
             padding: 6px 10px;
-            border: 1px solid #d9dde3;
+            border: 1px solid #c5ccd3 !important;
             border-radius: 3px;
-            background: #f0f2f4;
-            color: #c0392b;
+            background: #fafbfc !important;
+            color: #5a6672 !important;
             font-size: 12px;
+            font-weight: 400;
             line-height: 16px;
             box-sizing: border-box;
             appearance: none;
             -webkit-appearance: none;
             cursor: pointer;
             text-align: center;
+            text-decoration: none;
         }
-        .slmc-store-bl-btn:hover { background: #e2e6ea; }
-        .slmc-store-bl-btn.slmc-bl-btn-done {
-            background: #fff4e5;
-            border-color: #f0c060;
-            color: #9a6b00;
+        button.slmc-store-bl-btn:hover { background: #e2e6ea !important; color: #5a6672 !important; }
+        button.slmc-store-bl-btn.slmc-bl-btn-done,
+        button.slmc-store-bl-btn.slmc-bl-btn-done:hover {
+            background: #fafbfc !important;
+            border-color: #c5ccd3 !important;
+            color: #5a6672 !important;
         }
-        .slmc-store-bl-btn.slmc-bl-btn-done:hover { background: #fbe8cd; }
     `;
 
     let uiBuilt = false;
@@ -709,6 +715,14 @@
         });
     }
 
+    function ensureStyle(css, id) {
+        if (document.getElementById(id)) return;
+        const style = document.createElement('style');
+        style.id = id;
+        style.textContent = css;
+        document.head.appendChild(style);
+    }
+
     function injectUI() {
         if (uiBuilt) return;
         const container = document.querySelector('.sorting-container');
@@ -757,12 +771,8 @@
         root.appendChild(menu);
         container.insertBefore(root, container.firstChild);
 
-        const style = document.createElement('style');
-        style.textContent = UI_CSS;
-        document.head.appendChild(style);
-
-        uiBuilt = true;
-        wireUI(root, button, menu);
+        ensureStyle(UI_CSS, 'slmc-ui-style');
+        uiBuilt = true;        wireUI(root, button, menu);
         syncUIFromSettings();
         updateBadge();
     }
