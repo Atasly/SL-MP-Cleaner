@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SL Marketplace Cleaner
 // @namespace    slmarketplace
-// @version      0.59
+// @version      0.6
 // @description  Clean up Second Life Marketplace search results
 // @match        https://marketplace.secondlife.com/*
 // @grant        GM_getValue
@@ -61,6 +61,45 @@
 
     function parseListInput(text) {
         return [...new Set(String(text || '').split(/[\n,]/).map(s => s.trim()).filter(Boolean))];
+    }
+
+    const TRANSLIT = {
+        'ᴀ':'a', 'ʙ':'b', 'ᴄ':'c', 'ᴅ':'d', 'ᴇ':'e', 'ꜰ':'f', 'ɢ':'g', 'ʜ':'h', 'ɪ':'i', 'ᴊ':'j',
+        'ᴋ':'k', 'ʟ':'l', 'ᴍ':'m', 'ɴ':'n', 'ᴏ':'o', 'ᴘ':'p', 'ʀ':'r', 'ꜱ':'s', 'ᴛ':'t',
+        'ᴜ':'u', 'ᴠ':'v', 'ᴡ':'w', 'ʏ':'y', 'ᴢ':'z',
+        'ɐ':'a', 'ɑ':'a', 'ɒ':'o', 'ɔ':'o', 'ɓ':'b', 'ɕ':'c', 'ɖ':'d', 'ɗ':'d', 'ɘ':'e', 'ə':'e',
+        'ɚ':'er', 'ɛ':'e', 'ɜ':'e', 'ɝ':'er', 'ɞ':'o', 'ɟ':'j', 'ɡ':'g', 'ɥ':'h', 'ɦ':'h',
+        'ɨ':'i', 'ɬ':'l', 'ɭ':'l', 'ɮ':'l', 'ɯ':'u', 'ɰ':'u', 'ɱ':'m', 'ɲ':'n', 'ɳ':'n',
+        'ɵ':'o', 'ɹ':'r', 'ɺ':'r', 'ɻ':'r', 'ɼ':'r', 'ɽ':'r', 'ɾ':'r', 'ʁ':'r',
+        'ʂ':'s', 'ʃ':'sh', 'ʈ':'t', 'ʉ':'u', 'ʊ':'u', 'ʋ':'v', 'ʌ':'a', 'ʍ':'w', 'ʎ':'y',
+        'ʐ':'z', 'ʑ':'z', 'ʒ':'zh', 'ʔ':'', 'ʕ':'', 'ʡ':'', 'ʢ':'',
+        'ʰ':'h', 'ʲ':'j', 'ʷ':'w', 'ˀ':'', 'ˈ':'', 'ˌ':'', 'ː':'', 'ˑ':'', 'ʼ':'',
+        'å':'a', 'ø':'o', 'æ':'ae', 'œ':'oe', 'ß':'ss', 'ð':'d', 'þ':'th'
+    };
+
+    function normalizeName(s) {
+        return String(s || '')
+            .replace(/[\p{S}]+/gu, ' ')
+            .normalize('NFKD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .split('').map(ch => TRANSLIT[ch] ?? ch).join('')
+            .split('.').map((tok, i, arr) => {
+                if (i === arr.length - 1) return tok;
+                const next = arr[i + 1];
+                if (tok && next && (tok.length === 1 || next.length === 1)) return tok + '.';
+                return tok + ' ';
+            }).join('')
+            .replace(/[^\p{L}\p{N}\s.]/gu, ' ')
+            .replace(/[\s\u00A0]+/g, ' ')
+            .replace(/^[.\s]+|[.\s]+$/g, '')
+            .toLowerCase();
+    }
+
+    function blacklistMatch(brand, entry) {
+        const b = String(brand || '').trim();
+        const e = String(entry || '').trim();
+        if (!b || !e) return false;
+        return b.toLowerCase() === e.toLowerCase() || normalizeName(b) === normalizeName(e);
     }
 
     const COLOR_WORDS = [
@@ -134,7 +173,7 @@
         const body = settings.collapseBodies ? detectBody(item.name) : null;
         const stem = variantStem(item.title, settings.collapseColors);
         const demoFlag = isDemo(item.name) ? '|demo' : '|full';
-        return item.brand.toLowerCase() + '|' + (body ? 'B' : 'C') + '|' + stem + demoFlag;
+        return normalizeName(item.brand) + '|' + (body ? 'B' : 'C') + '|' + stem + demoFlag;
     }
 
     function decodeEntities(s) {
@@ -186,9 +225,9 @@
 
     function firstMatchingRule(item, storeCounts, variantReason) {
         const name = item.name.toLowerCase();
-        const brand = item.brand.toLowerCase();
+        const brand = normalizeName(item.brand);
 
-        if (settings.blacklistEnabled && item.brand && settings.blacklist.some(b => brand === b.toLowerCase())) {
+        if (settings.blacklistEnabled && item.brand && settings.blacklist.some(b => blacklistMatch(item.brand, b))) {
             return 'blacklist';
         }
         if (settings.hideDemos && isDemo(item.name)) {
@@ -260,6 +299,56 @@
         }
         updateBadge();
         return summary;
+    }
+
+    function addToBlacklist(storeName) {
+        const list = [...new Set([...(settings.blacklist || []), String(storeName || '').trim()].filter(Boolean))];
+        setSetting('blacklist', list);
+        if (settings.debug) {
+            console.info('[SLMC] blacklisted store:', storeName);
+        }
+    }
+
+    function removeFromBlacklist(storeName) {
+        const list = (settings.blacklist || []).filter(entry => !blacklistMatch(storeName, entry));
+        setSetting('blacklist', list);
+        if (settings.debug) {
+            console.info('[SLMC] un-blacklisted store:', storeName);
+        }
+    }
+
+    function addStoreBlacklistButton() {
+        if (!settings.blacklistEnabled) return;
+        const profile = document.querySelector('.merchant-profile');
+        if (!profile) return;
+        const favLink = profile.querySelector('a.profile-detail-link[href^="/favorite_stores"]');
+        if (!favLink) return;
+        if (profile.querySelector('.slmc-store-bl-btn')) return;
+        const titleEl = document.querySelector('#merchant-details .merchant-title h5');
+        const storeName = titleEl ? titleEl.textContent.trim() : '';
+        if (!storeName) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'slmc-store-bl-btn';
+        const refresh = () => {
+            const isBlacklisted = (settings.blacklist || []).some(entry => blacklistMatch(storeName, entry));
+            btn.classList.toggle('slmc-bl-btn-done', isBlacklisted);
+            btn.textContent = isBlacklisted ? 'Remove from Blacklist' : '⊘ Blacklist this store';
+            btn.title = isBlacklisted ? 'Remove this store from the blacklist' : 'Add this store to the blacklist';
+        };
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const isBlacklisted = (settings.blacklist || []).some(entry => blacklistMatch(storeName, entry));
+            if (isBlacklisted) {
+                removeFromBlacklist(storeName);
+            } else {
+                addToBlacklist(storeName);
+            }
+            refresh();
+        });
+        refresh();
+        favLink.insertAdjacentElement('afterend', btn);
     }
 
     function convertPrice(linden) {
@@ -443,6 +532,30 @@
             background: #e2e6ea; color: #4a5560;
         }
         #slmc-ui .slmc-badge-active { background: #0178BF; color: #fff; }
+        .slmc-store-bl-btn {
+            display: block;
+            width: 100%;
+            margin: 8px 0 0;
+            padding: 6px 10px;
+            border: 1px solid #d9dde3;
+            border-radius: 3px;
+            background: #f0f2f4;
+            color: #c0392b;
+            font-size: 12px;
+            line-height: 16px;
+            box-sizing: border-box;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            text-align: center;
+        }
+        .slmc-store-bl-btn:hover { background: #e2e6ea; }
+        .slmc-store-bl-btn.slmc-bl-btn-done {
+            background: #fff4e5;
+            border-color: #f0c060;
+            color: #9a6b00;
+        }
+        .slmc-store-bl-btn.slmc-bl-btn-done:hover { background: #fbe8cd; }
     `;
 
     let uiBuilt = false;
@@ -708,6 +821,7 @@
         filterTimer = setTimeout(() => {
             ensureUI();
             applyFilters();
+            addStoreBlacklistButton();
         }, 50);
     }
 
@@ -723,6 +837,7 @@
         applyFilters();
         applyPrices();
         ensureUI();
+        addStoreBlacklistButton();
     }
 
     let initialized = false;
@@ -756,6 +871,8 @@
         slugToName,
         parseProductData,
         parseListInput,
+        normalizeName,
+        blacklistMatch,
         getSettings: () => ({ ...settings }),
     };
 
