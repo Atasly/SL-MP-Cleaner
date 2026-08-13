@@ -26,7 +26,12 @@ All changes apply immediately and are remembered across page loads (`GM_getValue
 | Preferred body | Reborn | Reborn/eBody, Maitreya/Lara, Legacy, Kupra/Khupra, Jake, Gianni |
 | Show converted prices | on | Appends a €/USD price to each listing |
 | Max per store | off | Caps how many listings per store are shown (1/2/3/5/10) |
+| Full-width layout | on | Expands the search and store pages to fill the browser window instead of the narrow 700px column (cards keep their original size) |
 | Debug log | off | Logs every hide decision and a summary to the browser console |
+
+The **Full-width layout** option is also available as a quick button in the marketplace header on every page (next to the Buy L$ button). The grid icon toggles full-width layout on/off and **changes its icon** to reflect the state (2×2 grid when on, single narrow column when off) — even on pages the layout doesn't affect, like the home page, so you always get visual feedback. The setting is remembered across page loads.
+
+> **Note:** the **Day/night** dark theme is currently **disabled** while it is being reworked. The theme toggle is hidden and no `slmc-night` styling is applied anywhere.
 
 ### List editors
 
@@ -96,6 +101,12 @@ Each `L$` price gets a small appended span with the price converted to € or US
 ### Tab titles
 
 Result pages are renamed to `SL MP - <search query>` so tabs are easy to tell apart.
+
+### Full-width layout
+
+The marketplace shows results in a ~700px column centered on the page. **Full-width layout** widens the results area to fill the browser window (store pages and the new search layout are both supported). On store pages the sidebar and card sizing are kept intact - cards stay at their original 220x268 size, just arranged in more columns. On search pages the cards are compacted to match the store style (220x268, 1px `#ccc` border, white background, square corners) and the filter sidebar is narrowed to the same width as a store's, so search shows the same 7 columns per row as a store at 1920px. The featured-items carousel on search pages is kept full-width with its cards unclipped, so the extra "Featured" label line fits. The full-width class is only applied on search results (`/products/search`) and store pages (`/stores/<id>`) — elsewhere the grid button is present but does not widen the page.
+
+**Dark mode** is currently **disabled while it is being reworked**. The header button is hidden, the option no longer appears in the SL Cleaner menu, and the `slmc-night` class is never applied, so all pages stay on the marketplace's default light theme. The night CSS is still shipped in the userscript for the rework.
 
 ---
 
