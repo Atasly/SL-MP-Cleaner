@@ -13,7 +13,7 @@ A Tampermonkey userscript that filters Second Life Marketplace search results en
 
 Every search page gets an **SL Cleaner** button in the sort bar (to the left of "Best Selling"). A badge on the button shows how many items on the current page were hidden. Clicking it opens a menu with every option below.
 
-All changes apply immediately and are remembered across page loads (`GM_getValue`/`GM_setValue`). Options that live in the menu:
+All changes apply immediately and are remembered across page loads (`GM_getValue`/`GM_setValue`) and **sync across every open marketplace tab** — change a setting (blacklist, grid mode, anything) in one tab and the other tabs re-apply it instantly, no reload needed. Options that live in the menu:
 
 | Option | Default | Effect |
 | ------ | ------- | ------ |
@@ -30,6 +30,8 @@ All changes apply immediately and are remembered across page loads (`GM_getValue
 | Debug log | off | Logs every hide decision and a summary to the browser console |
 
 The **Full-width layout** option is also available as a quick button in the marketplace header on every page (next to the Buy L$ button). The grid icon toggles full-width layout on/off and **changes its icon** to reflect the state (2×2 grid when on, single narrow column when off) — even on pages the layout doesn't affect, like the home page, so you always get visual feedback. The setting is remembered across page loads.
+
+> **Note:** settings sync live across all open marketplace tabs. Any change made in one tab — a blacklist/negative-keyword edit, a toggle flip, or the grid button — is picked up by every other open MP tab within moments, and the receiving tabs re-filter and restyle themselves automatically.
 
 > **Note:** the **Day/night** dark theme is currently **disabled** while it is being reworked. The theme toggle is hidden and no `slmc-night` styling is applied anywhere.
 

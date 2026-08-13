@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SL Marketplace Cleaner
 // @namespace    slmarketplace
-// @version      0.71
+// @version      0.72
 // @description  Clean up Second Life Marketplace search results
 // @match        https://marketplace.secondlife.com/*
 // @grant        GM_getValue
@@ -60,6 +60,33 @@
         refreshAll();
         syncUIFromSettings();
         refreshAppearance();
+        notifySettingsChanged();
+    }
+
+    const SETTINGS_SYNC_KEY = 'slmc-settings-version';
+
+    function notifySettingsChanged() {
+        try {
+            localStorage.setItem(SETTINGS_SYNC_KEY, String(Date.now()));
+        } catch (e) {
+            /* storage unavailable - no cross-tab sync */
+        }
+    }
+
+    function applyRemoteSettings() {
+        Object.assign(settings, loadSettings());
+        refreshAll();
+        syncUIFromSettings();
+        refreshAppearance();
+        addStoreBlacklistButton();
+        refreshStoreBlacklistButtonState();
+    }
+
+    function startCrossTabSync() {
+        window.addEventListener('storage', (e) => {
+            if (e.key !== SETTINGS_SYNC_KEY) return;
+            applyRemoteSettings();
+        });
     }
 
     function parseListInput(text) {
@@ -320,6 +347,18 @@
         }
     }
 
+    function refreshStoreBlacklistButtonState() {
+        const btn = document.querySelector('button.slmc-store-bl-btn');
+        if (!btn) return;
+        const titleEl = document.querySelector('#merchant-details .merchant-title h5');
+        const storeName = titleEl ? titleEl.textContent.trim() : '';
+        if (!storeName) return;
+        const isBlacklisted = (settings.blacklist || []).some(entry => blacklistMatch(storeName, entry));
+        btn.classList.toggle('slmc-bl-btn-done', isBlacklisted);
+        btn.textContent = isBlacklisted ? 'Remove from Blacklist' : '⊘ Blacklist this store';
+        btn.title = isBlacklisted ? 'Remove this store from the blacklist' : 'Add this store to the blacklist';
+    }
+
     function addStoreBlacklistButton() {
         if (!settings.blacklistEnabled) return;
         const profile = document.querySelector('.merchant-profile');
@@ -334,12 +373,6 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'slmc-store-bl-btn';
-        const refresh = () => {
-            const isBlacklisted = (settings.blacklist || []).some(entry => blacklistMatch(storeName, entry));
-            btn.classList.toggle('slmc-bl-btn-done', isBlacklisted);
-            btn.textContent = isBlacklisted ? 'Remove from Blacklist' : '⊘ Blacklist this store';
-            btn.title = isBlacklisted ? 'Remove this store from the blacklist' : 'Add this store to the blacklist';
-        };
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -349,10 +382,9 @@
             } else {
                 addToBlacklist(storeName);
             }
-            refresh();
         });
-        refresh();
         favLink.insertAdjacentElement('afterend', btn);
+        refreshStoreBlacklistButtonState();
     }
 
     function convertPrice(linden) {
@@ -1162,6 +1194,7 @@
     });
 
     function init() {
+        startCrossTabSync();
         refreshAppearance();
         ensureLayoutStyles();
         updateTitle();
@@ -1210,6 +1243,8 @@
         refreshAppearance,
         addNavToggles,
         updateNavToggleButtons,
+        applyRemoteSettings,
+        notifySettingsChanged,
     };
 
     boot();
